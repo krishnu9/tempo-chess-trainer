@@ -1,7 +1,7 @@
 import { Check, Plus } from 'lucide-react'
-import { compact, pct } from '../lib/format'
-import type { MoveStat } from '../lib/stats'
-import { WdlBar, cx } from './ui'
+import { compact, pct } from '@/lib/format'
+import type { MoveStat } from '@/lib/stats'
+import { WdlBar, cx } from '@/components/kit'
 
 export function MoveStats({
   moves,
@@ -15,7 +15,7 @@ export function MoveStats({
   action?: 'add' | 'open'
 }) {
   if (!moves.length) {
-    return <p className="py-6 text-center text-xs text-muted">No popularity data for this position.</p>
+    return <p className="py-6 text-center text-xs text-muted-foreground">No popularity data for this position.</p>
   }
   return (
     <div className="space-y-0.5">
@@ -43,11 +43,11 @@ export function MoveStats({
               {move.san}
             </span>
             <WdlBar w={move.w} d={move.d} b={move.b} className="relative w-12 shrink-0" />
-            <span className="relative ml-auto w-10 text-right text-[11px] text-muted tabular">
+            <span className="relative ml-auto w-10 text-right text-[11px] text-muted-foreground tabular">
               {pct(move.share)}
             </span>
-            <span className="relative w-12 text-right text-[11px] text-muted tabular">{compact(move.games)}</span>
-            <span className="relative ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted transition-colors group-hover:bg-panel2 group-hover:text-ink">
+            <span className="relative w-12 text-right text-[11px] text-muted-foreground tabular">{compact(move.games)}</span>
+            <span className="relative ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors group-hover:bg-panel2 group-hover:text-ink">
               {isCovered ? <Check size={12} className="text-brand" /> : action === 'add' ? <Plus size={13} /> : null}
             </span>
           </button>

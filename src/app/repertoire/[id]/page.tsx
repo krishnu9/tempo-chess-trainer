@@ -1,3 +1,5 @@
+'use client'
+
 import {
   AlertTriangle,
   ArrowLeft,
@@ -10,9 +12,10 @@ import {
   Zap,
 } from 'lucide-react'
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Board, type BoardMove } from '../components/Board'
-import { MoveStats } from '../components/MoveStats'
+import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
+import { Board, type BoardMove } from '@/components/Board'
+import { MoveStats } from '@/components/MoveStats'
 import {
   Badge,
   Button,
@@ -25,14 +28,14 @@ import {
   Ring,
   Skeleton,
   cx,
-} from '../components/ui'
-import { compact, pct } from '../lib/format'
-import { other, turn } from '../lib/chess'
-import { identify } from '../lib/openings'
-import { getStats, useStats } from '../lib/stats'
-import { countMoves, countNodes, getNode, myPositions, nodeCoverage, sanPath } from '../lib/tree'
-import type { TreeNode } from '../lib/types'
-import { coverageOf, useStore } from '../store/store'
+} from '@/components/kit'
+import { compact, pct } from '@/lib/format'
+import { other, turn } from '@/lib/chess'
+import { identify } from '@/lib/openings'
+import { getStats, useStats } from '@/lib/stats'
+import { countMoves, countNodes, getNode, myPositions, nodeCoverage, sanPath } from '@/lib/tree'
+import type { TreeNode } from '@/lib/types'
+import { coverageOf, useStore } from '@/store/store'
 
 function TreeRow({
   active,
@@ -66,15 +69,15 @@ function TreeRow({
       )}
       style={{ paddingLeft: 6 + depth * 12 }}
     >
-      <span className="w-7 shrink-0 text-right text-[10px] text-muted tabular">
+      <span className="w-7 shrink-0 text-right text-[10px] text-muted-foreground tabular">
         {ply % 2 === 1 ? `${number}.` : `${number}…`}
       </span>
       <button onClick={onSelect} className="flex flex-1 items-center gap-1.5 py-1 text-left">
         {isMine && <span className="h-1 w-1 rounded-full bg-brand" />}
-        <span className={cx('font-mono', isMine ? 'font-semibold text-ink' : 'text-muted')}>{san}</span>
+        <span className={cx('font-mono', isMine ? 'font-semibold text-ink' : 'text-muted-foreground')}>{san}</span>
       </button>
       <button
-        className="invisible flex h-5 w-5 items-center justify-center rounded text-muted transition-colors hover:bg-danger/10 hover:text-danger group-hover:visible"
+        className="invisible flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger group-hover:visible"
         onClick={onDelete}
         aria-label={`Delete ${san} and its continuation`}
       >
@@ -138,8 +141,8 @@ function TreeBranch({
 }
 
 export default function RepertoireDetail() {
-  const { id } = useParams()
-  const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const router = useRouter()
   const repertoires = useStore((s) => s.repertoires)
   const addMoveTo = useStore((s) => s.addMoveTo)
   const removeNodeAt = useStore((s) => s.removeNodeAt)
@@ -182,7 +185,7 @@ export default function RepertoireDetail() {
           title="Repertoire not found"
           description="It may have been deleted. Open the list and pick another one."
           action={
-            <Link to="/repertoire">
+            <Link href="/repertoire">
               <Button variant="primary">Back to repertoires</Button>
             </Link>
           }
@@ -209,14 +212,13 @@ export default function RepertoireDetail() {
   }
 
   const trainLine = () => {
-    navigate('/train', {
-      state: {
-        line: sans,
-        side: rep.side,
-        name: name || rep.name,
-        repId: rep.id,
-      },
+    const query = new URLSearchParams({
+      line: sans.join(','),
+      side: rep.side,
+      name: name || rep.name,
+      rep: rep.id,
     })
+    router.push(`/train?${query}`)
   }
 
   const doDraft = () => {
@@ -229,7 +231,7 @@ export default function RepertoireDetail() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/repertoire">
+        <Link href="/repertoire">
           <Button variant="ghost" size="icon" aria-label="Back to repertoires">
             <ArrowLeft size={16} />
           </Button>
@@ -240,7 +242,7 @@ export default function RepertoireDetail() {
             <Badge tone={rep.side === 'white' ? 'neutral' : 'info'}>{rep.side}</Badge>
             {draftAdded !== null && <Badge tone="brand">+{draftAdded} positions drafted</Badge>}
           </div>
-          <p className="mt-0.5 text-[11px] text-muted">
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
             {countNodes(rep.root) - 1} positions · {countMoves(rep.root)} moves ·{' '}
             {myPositions(rep.root, rep.side).length} decision points
           </p>
@@ -257,7 +259,7 @@ export default function RepertoireDetail() {
             <Pencil size={13} />
             Rename
           </Button>
-          <Link to={`/train?rep=${rep.id}`}>
+          <Link href={`/train?rep=${rep.id}`}>
             <Button variant="primary" size="sm">
               <Target size={14} />
               Train repertoire
@@ -292,18 +294,18 @@ export default function RepertoireDetail() {
           </div>
           <div className="rounded-lg border border-line bg-panel px-3 py-2">
             <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-[12px]">
-              <span className="text-[10px] uppercase tracking-wide text-muted">Line</span>
-              {sans.length === 0 && <span className="text-muted">Starting position</span>}
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Line</span>
+              {sans.length === 0 && <span className="text-muted-foreground">Starting position</span>}
               {sans.map((san, i) => (
                 <button
                   key={i}
                   onClick={() => setPath(path.slice(0, i + 1))}
                   className={cx(
                     'rounded px-0.5 font-mono text-[12px] transition-colors hover:bg-panel2',
-                    i === sans.length - 1 ? 'font-semibold text-ink' : 'text-muted',
+                    i === sans.length - 1 ? 'font-semibold text-ink' : 'text-muted-foreground',
                   )}
                 >
-                  {i % 2 === 0 && <span className="mr-0.5 text-[10px] text-muted/70">{i / 2 + 1}.</span>}
+                  {i % 2 === 0 && <span className="mr-0.5 text-[10px] text-muted-foreground/70">{i / 2 + 1}.</span>}
                   {san}
                 </button>
               ))}
@@ -314,7 +316,7 @@ export default function RepertoireDetail() {
         <Card className="order-3 flex max-h-[420px] flex-col overflow-hidden xl:order-2 xl:max-h-[calc(100vh-11rem)]">
           <div className="flex items-center justify-between border-b border-line px-3 py-2.5">
             <h3 className="text-[13px] font-semibold">Move tree</h3>
-            <button className="text-[11px] text-muted hover:text-ink" onClick={() => setPath([])}>
+            <button className="text-[11px] text-muted-foreground hover:text-ink" onClick={() => setPath([])}>
               root
             </button>
           </div>
@@ -330,7 +332,7 @@ export default function RepertoireDetail() {
                 onDelete={(p, san) => setDeleteTarget({ path: p, san })}
               />
             ) : (
-              <p className="px-3 py-8 text-center text-[11px] leading-5 text-muted">
+              <p className="px-3 py-8 text-center text-[11px] leading-5 text-muted-foreground">
                 Empty tree. Play a move on the board or import a line from the library.
               </p>
             )}
@@ -344,7 +346,7 @@ export default function RepertoireDetail() {
                 <AlertTriangle size={15} className="mt-0.5 shrink-0 text-danger" />
                 <div className="text-[11px] leading-5">
                   <p className="font-medium text-ink">Popularity data unavailable</p>
-                  <p className="text-muted">{statsError}</p>
+                  <p className="text-muted-foreground">{statsError}</p>
                   <button className="mt-1 underline" onClick={retry}>
                     Try again
                   </button>
@@ -374,7 +376,7 @@ export default function RepertoireDetail() {
             ) : stats ? (
               <MoveStats moves={stats.moves.slice(0, 10)} covered={covered} onPick={(m) => pick(m.uci)} action={myTurn ? 'add' : 'open'} />
             ) : (
-              <p className="px-2 py-6 text-center text-[11px] leading-5 text-muted">
+              <p className="px-2 py-6 text-center text-[11px] leading-5 text-muted-foreground">
                 No games reached this position in the snapshot. You can still add moves on the board.
               </p>
             )}
@@ -385,7 +387,7 @@ export default function RepertoireDetail() {
               <Ring value={coverage?.pct ?? 0} size={68} stroke={6} />
               <div className="min-w-0">
                 <p className="text-sm font-medium">All opponent branches</p>
-                <p className="mt-0.5 text-[11px] text-muted">
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
                   {coverage && coverage.total
                     ? 'Weighted across opponent branch points'
                     : 'Waiting for popularity data'}
@@ -397,7 +399,7 @@ export default function RepertoireDetail() {
               <div className="mt-3 flex items-center justify-between rounded-lg border border-line bg-panel2/40 px-3 py-2">
                 <div>
                   <p className="text-[11px] font-medium">This position</p>
-                  <p className="text-[10px] text-muted">
+                  <p className="text-[10px] text-muted-foreground">
                     {nodeCov ? `${pct(nodeCov.pct)} of games answered` : 'No data'}
                   </p>
                 </div>
@@ -409,7 +411,7 @@ export default function RepertoireDetail() {
             {myTurn && (
               <div className="mt-3 rounded-lg border border-line bg-panel2/40 px-3 py-2">
                 <p className="text-[11px] font-medium">Your move</p>
-                <p className="text-[10px] text-muted">
+                <p className="text-[10px] text-muted-foreground">
                   {node.children.length
                     ? `${node.children.length} prepared ${node.children.length === 1 ? 'reply' : 'replies'}`
                     : 'No reply yet. Pick a candidate or play a move.'}
@@ -420,7 +422,7 @@ export default function RepertoireDetail() {
               <Zap size={13} />
               Draft popular lines
             </Button>
-            <p className="mt-1.5 text-center text-[10px] leading-4 text-muted">
+            <p className="mt-1.5 text-center text-[10px] leading-4 text-muted-foreground">
               Adds the top opponent moves to 85% and the most popular reply
             </p>
           </Panel>
@@ -443,7 +445,7 @@ export default function RepertoireDetail() {
           </>
         }
       >
-        <div className="space-y-3 text-sm text-muted">
+        <div className="space-y-3 text-sm text-muted-foreground">
           <p>
             Tempo will extend <span className="font-medium text-ink">{rep.name}</span> along the most common opponent
             moves until each branch covers 85% of games.
@@ -517,7 +519,7 @@ export default function RepertoireDetail() {
           </>
         }
       >
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted-foreground">
           Delete <span className="font-mono font-medium text-ink">{deleteTarget?.san}</span> and every move after it?
           The branch is removed from this repertoire.
         </p>

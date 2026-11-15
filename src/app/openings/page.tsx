@@ -1,12 +1,15 @@
+'use client'
+
 import { BookOpen, Plus, Search, Swords, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Board } from '../components/Board'
-import { Badge, Button, Card, Input, Modal, Panel, Select, cx } from '../components/ui'
-import { playSan, START_FEN } from '../lib/chess'
-import { ECO_LETTERS, OPENINGS, searchOpenings, type Opening } from '../lib/openings'
-import type { Side } from '../lib/types'
-import { useStore } from '../store/store'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Board } from '@/components/Board'
+import { Badge, Button, Card, Input, Modal, Panel, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, cx } from '@/components/kit'
+import { playSan, START_FEN } from '@/lib/chess'
+import { ECO_LETTERS, OPENINGS, searchOpenings, type Opening } from '@/lib/openings'
+import type { Side } from '@/lib/types'
+import { useStore } from '@/store/store'
 
 const keyOf = (o: Opening) => `${o.eco}|${o.sans.join(' ')}`
 
@@ -16,7 +19,7 @@ const DEFAULT =
   OPENINGS[0]
 
 export default function Openings() {
-  const navigate = useNavigate()
+  const router = useRouter()
   const repertoires = useStore((s) => s.repertoires)
   const addLineTo = useStore((s) => s.addLineTo)
   const addLinesTo = useStore((s) => s.addLinesTo)
@@ -76,9 +79,8 @@ export default function Openings() {
   }
 
   const practice = (side: Side) => {
-    navigate('/train', {
-      state: { line: selected.sans, side, name: selected.name },
-    })
+    const query = new URLSearchParams({ line: selected.sans.join(','), side, name: selected.name })
+    router.push(`/train?${query}`)
   }
 
   const startAdd = (all = false) => {
@@ -107,7 +109,7 @@ export default function Openings() {
       <Card className="flex max-h-[calc(100vh-9rem)] flex-col overflow-hidden">
         <div className="space-y-3 border-b border-line p-4">
           <div className="relative">
-            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(e) => {
@@ -131,20 +133,20 @@ export default function Openings() {
                 }}
                 className={cx(
                   'h-7 min-w-8 rounded-md px-2 text-[11px] font-medium transition-colors',
-                  letter === l ? 'bg-brand-soft text-brand' : 'text-muted hover:bg-panel2 hover:text-ink',
+                  letter === l ? 'bg-brand-soft text-brand' : 'text-muted-foreground hover:bg-panel2 hover:text-ink',
                 )}
               >
                 {l}
               </button>
             ))}
-            <span className="ml-auto self-center text-[11px] text-muted">{results.length} lines</span>
+            <span className="ml-auto self-center text-[11px] text-muted-foreground">{results.length} lines</span>
           </div>
         </div>
         {picked.size > 0 && (
           <div className="flex items-center gap-2 border-b border-line bg-brand-soft/50 px-4 py-2">
             <span className="text-[11px] font-medium">{picked.size} selected</span>
             <button
-              className="flex items-center gap-0.5 text-[11px] text-muted hover:text-ink"
+              className="flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-ink"
               onClick={() => setPicked(new Set())}
             >
               <X size={11} /> clear
@@ -179,7 +181,7 @@ export default function Openings() {
                   </Badge>
                   <span className="min-w-0">
                     <span className="block truncate text-[13px] font-medium">{opening.name}</span>
-                    <span className="mt-0.5 block truncate text-[11px] text-muted">
+                    <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
                       {opening.sans.slice(0, 8).join(' ')}
                       {opening.sans.length > 8 ? '…' : ''}
                     </span>
@@ -196,7 +198,7 @@ export default function Openings() {
             </div>
           )}
           {!results.length && (
-            <p className="px-4 py-10 text-center text-xs text-muted">No lines match “{query}”.</p>
+            <p className="px-4 py-10 text-center text-xs text-muted-foreground">No lines match “{query}”.</p>
           )}
         </div>
       </Card>
@@ -228,7 +230,7 @@ export default function Openings() {
                 End
               </Button>
             </div>
-            <span className="text-[11px] text-muted tabular">
+            <span className="text-[11px] text-muted-foreground tabular">
               ply {ply}/{selected.sans.length}
             </span>
           </div>
@@ -240,18 +242,18 @@ export default function Openings() {
               <div>
                 <div className="flex items-center gap-2">
                   <Badge tone="brand">{selected.eco}</Badge>
-                  <span className="text-[11px] text-muted">{selected.family}</span>
+                  <span className="text-[11px] text-muted-foreground">{selected.family}</span>
                 </div>
                 <h2 className="mt-2 text-lg font-semibold leading-6">{selected.name}</h2>
               </div>
-              <Swords size={18} className="mt-1 text-muted" />
+              <Swords size={18} className="mt-1 text-muted-foreground" />
             </div>
             <div className="mt-4">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Line</p>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Line</p>
               <div className="grid grid-cols-[2rem_1fr_1fr] gap-x-1 gap-y-0.5 text-[13px]">
                 {Array.from({ length: Math.ceil(selected.sans.length / 2) }, (_, i) => (
                   <div key={i} className="contents">
-                    <span className="py-0.5 text-right text-[11px] text-muted tabular">{i + 1}.</span>
+                    <span className="py-0.5 text-right text-[11px] text-muted-foreground tabular">{i + 1}.</span>
                     {[0, 1].map((offset) => {
                       const index = i * 2 + offset
                       const san = selected.sans[index]
@@ -288,7 +290,7 @@ export default function Openings() {
             {added && (
               <p className="mt-2 flex items-center gap-1.5 text-[11px] text-brand">
                 <BookOpen size={12} /> Added {added.count} {added.count === 1 ? 'line' : 'lines'} to {added.name}.
-                <Link to="/repertoire" className="underline">
+                <Link href="/repertoire" className="underline">
                   Open
                 </Link>
               </p>
@@ -298,23 +300,23 @@ export default function Openings() {
           <Panel title="About this line" subtitle="Opening tree snapshot">
             <dl className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <dt className="text-muted">ECO code</dt>
+                <dt className="text-muted-foreground">ECO code</dt>
                 <dd className="mt-0.5 font-medium tabular">{selected.eco}</dd>
               </div>
               <div>
-                <dt className="text-muted">Family</dt>
+                <dt className="text-muted-foreground">Family</dt>
                 <dd className="mt-0.5 font-medium">{selected.family}</dd>
               </div>
               <div>
-                <dt className="text-muted">Moves</dt>
+                <dt className="text-muted-foreground">Moves</dt>
                 <dd className="mt-0.5 font-medium tabular">{selected.sans.length}</dd>
               </div>
               <div>
-                <dt className="text-muted">Source</dt>
+                <dt className="text-muted-foreground">Source</dt>
                 <dd className="mt-0.5 font-medium">Lichess openings</dd>
               </div>
             </dl>
-            <p className="mt-3 border-t border-line pt-3 text-[11px] leading-5 text-muted">
+            <p className="mt-3 border-t border-line pt-3 text-[11px] leading-5 text-muted-foreground">
               Import this line into a repertoire to train it. Tempo treats your side's moves as the answers and the
               opponent's moves as the branches to cover.
             </p>
@@ -343,15 +345,20 @@ export default function Openings() {
               <label htmlFor="rep-target" className="mb-1.5 block text-xs font-medium">
                 Repertoire
               </label>
-              <Select id="rep-target" value={target} onChange={(e) => setTarget(e.target.value)} className="w-full">
-                {repertoires.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} · {r.side}
-                  </option>
-                ))}
+              <Select value={target} onValueChange={setTarget}>
+                <SelectTrigger id="rep-target" className="w-full">
+                  <SelectValue placeholder="Choose a repertoire" />
+                </SelectTrigger>
+                <SelectContent>
+                  {repertoires.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name} · {r.side}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
-            <p className="text-[11px] leading-5 text-muted">
+            <p className="text-[11px] leading-5 text-muted-foreground">
               {bulk
                 ? `${pickedLines.length} filtered lines are merged into the tree. Existing moves stay. Large imports can take a moment to save.`
                 : 'The line is merged into the tree. Existing moves stay. You can switch sides inside the builder at any time.'}
@@ -359,8 +366,8 @@ export default function Openings() {
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm text-muted">Create a repertoire first.</p>
-            <Link to="/repertoire">
+            <p className="text-sm text-muted-foreground">Create a repertoire first.</p>
+            <Link href="/repertoire">
               <Button variant="primary">Go to repertoires</Button>
             </Link>
           </div>

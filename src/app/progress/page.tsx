@@ -1,11 +1,13 @@
+'use client'
+
 import { Database, Download, Flame, RotateCcw, Trash2, Upload } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
-import { Badge, Button, Card, Modal, Panel, Progress as ProgressBar, Select, cx } from '../components/ui'
-import { accuracy, activity, learnedCount, streakDays } from '../lib/analytics'
-import { compact, dateShort, pct, startOfDay, timeAgo } from '../lib/format'
-import { DAY } from '../lib/srs'
-import { statsMeta, useStats } from '../lib/stats'
-import { useStore } from '../store/store'
+import { Badge, Button, Card, Modal, Panel, Progress as ProgressBar, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, cx } from '@/components/kit'
+import { accuracy, activity, learnedCount, streakDays } from '@/lib/analytics'
+import { compact, dateShort, pct, startOfDay, timeAgo } from '@/lib/format'
+import { DAY } from '@/lib/srs'
+import { statsMeta, useStats } from '@/lib/stats'
+import { useStore } from '@/store/store'
 
 export default function Progress() {
   const attempts = useStore((s) => s.attempts)
@@ -72,7 +74,7 @@ export default function Progress() {
     <div className="space-y-5">
       <div>
         <h2 className="text-[22px] font-semibold tracking-tight">Progress</h2>
-        <p className="mt-1 text-xs text-muted">Everything stored on this device. Export a backup when it matters.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Everything stored on this device. Export a backup when it matters.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -83,9 +85,9 @@ export default function Progress() {
           { label: 'Streak', value: `${streak}d`, sub: 'consecutive review days' },
         ].map((kpi) => (
           <Card key={kpi.label} className="p-4">
-            <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted">{kpi.label}</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{kpi.label}</p>
             <p className="mt-2 text-2xl font-semibold tabular">{kpi.value}</p>
-            <p className="mt-1 text-[11px] text-muted">{kpi.sub}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">{kpi.sub}</p>
           </Card>
         ))}
       </div>
@@ -94,7 +96,7 @@ export default function Progress() {
         title="Review heatmap"
         subtitle="Last 12 weeks"
         action={
-          <div className="flex items-center gap-1.5 text-[10px] text-muted">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             less
             {[0, 0.2, 0.4, 0.65, 1].map((v) => (
               <span
@@ -125,7 +127,7 @@ export default function Progress() {
             })}
           </div>
         </div>
-        <div className="mt-3 flex justify-between text-[10px] text-muted">
+        <div className="mt-3 flex justify-between text-[10px] text-muted-foreground">
           <span>{dateShort(startOfDay(now) - 83 * DAY)}</span>
           <span>today</span>
         </div>
@@ -137,7 +139,7 @@ export default function Progress() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-line text-[10px] uppercase tracking-wide text-muted">
+                  <tr className="border-b border-line text-[10px] uppercase tracking-wide text-muted-foreground">
                     <th className="pb-2 font-medium">Opening</th>
                     <th className="pb-2 text-right font-medium">Reviews</th>
                     <th className="pb-2 pl-4 font-medium">Accuracy</th>
@@ -148,25 +150,25 @@ export default function Progress() {
                   {byOpening.map((row) => (
                     <tr key={row.name} className="border-b border-line/60 last:border-0">
                       <td className="max-w-[280px] truncate py-2 pr-3">{row.name}</td>
-                      <td className="py-2 text-right tabular text-muted">{row.total}</td>
+                      <td className="py-2 text-right tabular text-muted-foreground">{row.total}</td>
                       <td className="py-2 pl-4">
                         <div className="flex items-center gap-2">
                           <ProgressBar
                             value={row.acc}
                             className="w-20"
-                            tone={row.acc >= 0.85 ? 'brand' : row.acc >= 0.7 ? 'accent' : 'danger'}
+                            tone={row.acc >= 0.85 ? 'brand' : row.acc >= 0.7 ? 'warn' : 'danger'}
                           />
-                          <span className="w-9 tabular text-muted">{pct(row.acc)}</span>
+                          <span className="w-9 tabular text-muted-foreground">{pct(row.acc)}</span>
                         </div>
                       </td>
-                      <td className="py-2 text-right text-muted">{timeAgo(row.last, now)}</td>
+                      <td className="py-2 text-right text-muted-foreground">{timeAgo(row.last, now)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="py-8 text-center text-xs text-muted">No reviews yet. Start a session.</p>
+            <p className="py-8 text-center text-xs text-muted-foreground">No reviews yet. Start a session.</p>
           )}
         </Panel>
 
@@ -182,7 +184,7 @@ export default function Progress() {
                       onClick={() => setTheme(t)}
                       className={cx(
                         'rounded-lg border px-3 py-2 text-xs capitalize transition-colors',
-                        settings.theme === t ? 'border-brand bg-brand-soft font-medium' : 'border-line text-muted hover:text-ink',
+                        settings.theme === t ? 'border-brand bg-brand-soft font-medium' : 'border-line text-muted-foreground hover:text-ink',
                       )}
                     >
                       {t}
@@ -194,26 +196,31 @@ export default function Progress() {
                 <label htmlFor="set-board" className="mb-1.5 block text-xs font-medium">
                   Board colours
                 </label>
-                <Select id="set-board" value={settings.boardTheme} onChange={(e) => setBoardTheme(e.target.value as 'green' | 'blue')} className="w-full">
-                  <option value="green">Green</option>
-                  <option value="blue">Blue</option>
+                <Select value={settings.boardTheme} onValueChange={(v) => setBoardTheme(v as 'green' | 'blue')}>
+                  <SelectTrigger id="set-board" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="green">Green</SelectItem>
+                    <SelectItem value="blue">Blue</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
               <div>
                 <label htmlFor="set-new" className="mb-1.5 block text-xs font-medium">
                   New cards per session
                 </label>
-                <Select
-                  id="set-new"
-                  value={settings.newPerDay}
-                  onChange={(e) => setNewPerDay(Number(e.target.value))}
-                  className="w-full"
-                >
-                  {[5, 10, 20, 30, 40].map((n) => (
-                    <option key={n} value={n}>
-                      {n} cards
-                    </option>
-                  ))}
+                <Select value={String(settings.newPerDay)} onValueChange={(v) => setNewPerDay(Number(v))}>
+                  <SelectTrigger id="set-new" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[5, 10, 20, 30, 40].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n} cards
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
@@ -221,10 +228,10 @@ export default function Progress() {
 
           <Panel title="Data" subtitle="Local backup">
             <div className="flex items-center gap-3 rounded-lg border border-line bg-panel2/40 p-3">
-              <Database size={16} className="text-muted" />
+              <Database size={16} className="text-muted-foreground" />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium">{sizeKb} KB stored</p>
-                <p className="text-[10px] text-muted">{repertoires.length} repertoires · {Object.keys(cards).length} cards</p>
+                <p className="text-[10px] text-muted-foreground">{repertoires.length} repertoires · {Object.keys(cards).length} cards</p>
               </div>
               <Badge tone={sizeKb > 4000 ? 'danger' : 'neutral'}>{sizeKb > 4000 ? 'large' : 'healthy'}</Badge>
             </div>
@@ -249,8 +256,8 @@ export default function Progress() {
             />
             {importError && <p className="mt-2 text-[11px] text-danger">{importError}</p>}
             <div className="mt-3 border-t border-line pt-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">Demo data</p>
-              <p className="mt-1 text-[11px] leading-5 text-muted">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Demo data</p>
+              <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
                 Replace everything with the sample White and Black repertoires and 30 days of review history.
               </p>
               <Button variant="danger" size="sm" className="mt-2 w-full" onClick={() => setResetOpen(true)}>
@@ -263,26 +270,26 @@ export default function Progress() {
             {meta ? (
               <dl className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <dt className="text-muted">Games</dt>
+                  <dt className="text-muted-foreground">Games</dt>
                   <dd className="mt-0.5 font-medium tabular">{compact(meta.games)}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Positions</dt>
+                  <dt className="text-muted-foreground">Positions</dt>
                   <dd className="mt-0.5 font-medium tabular">{compact(meta.positions)}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Depth</dt>
+                  <dt className="text-muted-foreground">Depth</dt>
                   <dd className="mt-0.5 font-medium tabular">{meta.depth} plies</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Time controls</dt>
+                  <dt className="text-muted-foreground">Time controls</dt>
                   <dd className="mt-0.5 font-medium">{meta.timeControls}</dd>
                 </div>
               </dl>
             ) : (
-              <p className="text-xs text-muted">Snapshot not loaded.</p>
+              <p className="text-xs text-muted-foreground">Snapshot not loaded.</p>
             )}
-            <p className="mt-3 flex items-center gap-1.5 border-t border-line pt-3 text-[11px] text-muted">
+            <p className="mt-3 flex items-center gap-1.5 border-t border-line pt-3 text-[11px] text-muted-foreground">
               <Flame size={12} /> {compact(attempts.length)} reviews stored on this device.
             </p>
           </Panel>
@@ -310,7 +317,7 @@ export default function Progress() {
           </>
         }
       >
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted-foreground">
           This deletes your repertoires, cards, and review history. It then loads the demo content again. Export a
           backup first if you want to keep your data.
         </p>

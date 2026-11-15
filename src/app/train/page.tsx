@@ -1,3 +1,5 @@
+'use client'
+
 import {
   BookOpen,
   Check,
@@ -10,40 +12,47 @@ import {
   Target,
   X,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { Board, type BoardMove } from '../components/Board'
-import { Badge, Button, Card, Panel, Progress, Ring, Select, Tabs, cx } from '../components/ui'
-import { accuracy, dueCount, streakDays } from '../lib/analytics'
-import { playUci, START_FEN, turn } from '../lib/chess'
-import { compact, pct, seconds } from '../lib/format'
-import { DAY } from '../lib/srs'
-import { lookup, useStats } from '../lib/stats'
-import { buildLineTasks, buildPlayoutTasks, buildReviewTasks, type Task } from '../lib/trainer'
-import type { Repertoire, Side } from '../lib/types'
-import { myPositions, sanPath } from '../lib/tree'
-import { useStore } from '../store/store'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Board, type BoardMove } from '@/components/Board'
+import { Badge, Button, Card, Panel, Progress, Ring, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsList, TabsTrigger, cx } from '@/components/kit'
+import { accuracy, dueCount, streakDays } from '@/lib/analytics'
+import { playUci, START_FEN, turn } from '@/lib/chess'
+import { compact, pct, seconds } from '@/lib/format'
+import { DAY } from '@/lib/srs'
+import { lookup, useStats } from '@/lib/stats'
+import { buildLineTasks, buildPlayoutTasks, buildReviewTasks, type Task } from '@/lib/trainer'
+import type { Repertoire, Side } from '@/lib/types'
+import { myPositions, sanPath } from '@/lib/tree'
+import { useStore } from '@/store/store'
 
 type Mode = 'review' | 'playout'
-type LineState = { line: string[]; side: Side; name: string; repId?: string }
 type Result = { task: Task; correct: boolean; ms: number }
 
-export default function Train() {
+export default function TrainPage() {
+  return (
+    <Suspense fallback={null}>
+      <Train />
+    </Suspense>
+  )
+}
+
+function Train() {
   const repertoires = useStore((s) => s.repertoires)
   const cards = useStore((s) => s.cards)
   const attempts = useStore((s) => s.attempts)
   const newPerDay = useStore((s) => s.settings.newPerDay)
   const recordResult = useStore((s) => s.recordResult)
   const { state: statsState } = useStats()
-  const [params] = useSearchParams()
-  const location = useLocation()
+  const search = useSearchParams()
+  const router = useRouter()
 
-  const initialRep = params.get('rep') ?? 'all'
+  const initialRep = search.get('rep') ?? 'all'
+  const lineParam = search.get('line')
   const [mode, setMode] = useState<Mode>('review')
   const [repId, setRepId] = useState(initialRep)
-  const [phase, setPhase] = useState<'setup' | 'session' | 'summary'>(
-    location.state ? 'session' : 'setup',
-  )
+  const [phase, setPhase] = useState<'setup' | 'session' | 'summary'>(lineParam ? 'session' : 'setup')
   const [tasks, setTasks] = useState<Task[]>([])
   const [index, setIndex] = useState(0)
   const [results, setResults] = useState<Result[]>([])
@@ -106,13 +115,13 @@ export default function Train() {
   }
 
   useEffect(() => {
-    const label = (location.state as LineState | null)?.name
-    if (!label || autoStarted.current) return
+    if (!lineParam || autoStarted.current) return
     autoStarted.current = true
-    const state = location.state as LineState
+    const side: Side = search.get('side') === 'black' ? 'black' : 'white'
+    const name = search.get('name') ?? 'Line drill'
     setLineMode(true)
-    start(buildLineTasks(state.repId ?? '', state.side, state.line, state.name), `${state.name} · ${state.side}`)
-    window.history.replaceState({}, document.title)
+    start(buildLineTasks(search.get('rep') ?? '', side, lineParam.split(','), name), `${name} · ${side}`)
+    router.replace('/train')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -211,7 +220,7 @@ export default function Train() {
     return (
       <div className="mx-auto max-w-3xl space-y-4">
         <div>
-          <p className="text-xs text-muted">Session complete</p>
+          <p className="text-xs text-muted-foreground">Session complete</p>
           <h2 className="mt-1 text-[22px] font-semibold tracking-tight">
             {acc >= 0.9 ? 'Sharp session.' : acc >= 0.7 ? 'Solid work.' : 'Good reps. Review the misses.'}
           </h2>
@@ -238,10 +247,10 @@ export default function Train() {
               <RotateCcw size={14} />
               Train again
             </Button>
-            <Link to="/">
+            <Link href="/">
               <Button variant="outline">Back to dashboard</Button>
             </Link>
-            <Link to="/progress">
+            <Link href="/progress">
               <Button variant="ghost">View progress</Button>
             </Link>
           </div>
@@ -257,11 +266,11 @@ export default function Train() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-medium">{r.task.name}</p>
-                    <p className="text-[11px] text-muted">
+                    <p className="text-[11px] text-muted-foreground">
                       {r.task.expected.map((e) => e.san).join(' or ')}
                     </p>
                   </div>
-                  <span className="text-[11px] text-muted tabular">{seconds(r.ms)}</span>
+                  <span className="text-[11px] text-muted-foreground tabular">{seconds(r.ms)}</span>
                 </div>
               ))}
             </div>
@@ -280,7 +289,7 @@ export default function Train() {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <Badge tone="brand">{lineLabel ?? 'Review'}</Badge>
-              <span className="text-[11px] text-muted">
+              <span className="text-[11px] text-muted-foreground">
                 {index + 1} / {total}
               </span>
             </div>
@@ -306,7 +315,7 @@ export default function Train() {
               interactive={!solved}
             />
             <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted">
+              <p className="text-[11px] text-muted-foreground">
                 {current.path.length ? `Decision at ply ${current.path.length + 1}` : 'First move'} ·{' '}
                 {current.expected.length > 1
                   ? `${current.expected.length} accepted answers`
@@ -333,7 +342,7 @@ export default function Train() {
                   </span>
                   <div>
                     <p className="text-sm font-semibold">Correct</p>
-                    <p className="mt-0.5 text-xs text-muted">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {attempted ? 'Recovered after a miss. This card is scheduled soon.' : 'Added to your schedule.'}
                     </p>
                   </div>
@@ -349,23 +358,23 @@ export default function Train() {
                   </span>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">Not in your repertoire</p>
-                    <p className="mt-0.5 text-xs text-muted">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       You played <span className="font-mono">{wrong}</span>. Expected{' '}
                       <span className="font-mono font-medium text-ink">
                         {current.expected.map((e) => e.san).join(' or ')}
                       </span>
                       .
                     </p>
-                    <p className="mt-1.5 text-[11px] text-muted">Play the expected move to continue.</p>
+                    <p className="mt-1.5 text-[11px] text-muted-foreground">Play the expected move to continue.</p>
                   </div>
                 </div>
               ) : (
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Your move</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Your move</p>
                   <p className="mt-1 text-sm font-medium">
                     Play the move from your repertoire for this position.
                   </p>
-                  <p className="mt-2 text-[11px] leading-5 text-muted">
+                  <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
                     Drag a piece or click a square twice. No move is penalised until you commit.
                   </p>
                 </div>
@@ -375,29 +384,29 @@ export default function Train() {
             <Panel title="Session" subtitle={`${sessionCorrect} correct of ${results.length} graded`}>
               <dl className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <dt className="text-muted">Accuracy</dt>
+                  <dt className="text-muted-foreground">Accuracy</dt>
                   <dd className="mt-0.5 text-base font-semibold tabular">
                     {results.length ? pct(accuracySoFar) : '—'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Remaining</dt>
+                  <dt className="text-muted-foreground">Remaining</dt>
                   <dd className="mt-0.5 text-base font-semibold tabular">{total - index - 1}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Elapsed</dt>
+                  <dt className="text-muted-foreground">Elapsed</dt>
                   <dd className="mt-0.5 text-base font-semibold tabular">
                     {Math.max(1, Math.round((now - startedAt) / 60000))}m
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Due today</dt>
+                  <dt className="text-muted-foreground">Due today</dt>
                   <dd className="mt-0.5 text-base font-semibold tabular">{due}</dd>
                 </div>
               </dl>
-              <div className="mt-3 border-t border-line pt-3 text-[11px] leading-5 text-muted">
+              <div className="mt-3 border-t border-line pt-3 text-[11px] leading-5 text-muted-foreground">
                 {hint && !solved && (
-                  <p className="flex items-center gap-1.5 text-accent">
+                  <p className="flex items-center gap-1.5 text-warn">
                     <Eye size={12} /> Hint shown. Make the move.
                   </p>
                 )}
@@ -414,8 +423,8 @@ export default function Train() {
               <Panel title="Line so far" subtitle={rep.name} bodyClassName="p-3">
                 <div className="flex flex-wrap gap-x-1.5 gap-y-1 font-mono text-[11px]">
                   {lineSans.map((san, i) => (
-                    <span key={i} className="text-muted">
-                      {i % 2 === 0 && <span className="mr-0.5 text-[10px] text-muted/60">{i / 2 + 1}.</span>}
+                    <span key={i} className="text-muted-foreground">
+                      {i % 2 === 0 && <span className="mr-0.5 text-[10px] text-muted-foreground/60">{i / 2 + 1}.</span>}
                       <span className="text-ink">{san}</span>
                     </span>
                   ))}
@@ -424,7 +433,7 @@ export default function Train() {
             )}
 
             {rep && (
-              <Link to={`/repertoire/${rep.id}`}>
+              <Link href={`/repertoire/${rep.id}`}>
                 <Button variant="ghost" size="sm" className="w-full">
                   <BookOpen size={13} /> Open {rep.name}
                 </Button>
@@ -450,34 +459,37 @@ export default function Train() {
       <div className="space-y-4">
         <div>
           <h2 className="text-[22px] font-semibold tracking-tight">Trainer</h2>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs text-muted-foreground">
             Answer with the moves you prepared. Missed positions return sooner.
           </p>
         </div>
 
         <Panel title="Session setup" subtitle="Review due cards or play out a popular line">
           <div className="space-y-4">
-            <Tabs
-              value={mode}
-              onChange={setMode}
-              items={[
-                { value: 'review', label: 'Review' },
-                { value: 'playout', label: 'Play out' },
-              ]}
-            />
+            <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="review">Review</TabsTrigger>
+                <TabsTrigger value="playout">Play out</TabsTrigger>
+              </TabsList>
+            </Tabs>
             <div>
               <label htmlFor="train-rep" className="mb-1.5 block text-xs font-medium">
                 Repertoire
               </label>
-              <Select id="train-rep" value={repId} onChange={(e) => setRepId(e.target.value)} className="w-full">
-                <option value="all">All repertoires</option>
-                {repertoires.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} · {r.side}
-                  </option>
-                ))}
+              <Select value={repId} onValueChange={setRepId}>
+                <SelectTrigger id="train-rep" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All repertoires</SelectItem>
+                  {repertoires.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name} · {r.side}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-              <p className="mt-1.5 text-[11px] text-muted">
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
                 {mode === 'review'
                   ? `${dueSelected} due · up to ${Math.min(newPerDay, newSelected)} new cards`
                   : 'One random line, weighted by how often each move is played.'}
@@ -494,7 +506,7 @@ export default function Train() {
               {mode === 'review' ? 'Start review' : 'Play a line'}
             </Button>
             {mode === 'playout' && repId === 'all' && (
-              <p className="text-center text-[11px] text-accent">Pick one repertoire for commentated playout.</p>
+              <p className="text-center text-[11px] text-warn">Pick one repertoire for commentated playout.</p>
             )}
             {noTasks && (
               <p className="rounded-lg border border-brand/30 bg-brand-soft/50 px-3 py-2 text-center text-[11px] text-brand">
@@ -502,9 +514,9 @@ export default function Train() {
               </p>
             )}
             {!repertoires.length && (
-              <p className="text-center text-[11px] text-muted">
+              <p className="text-center text-[11px] text-muted-foreground">
                 Create a repertoire first.{' '}
-                <Link to="/repertoire" className="underline">
+                <Link href="/repertoire" className="underline">
                   Open repertoires
                 </Link>
               </p>
@@ -524,7 +536,7 @@ export default function Train() {
                   {item.icon}
                 </span>
                 <p className="mt-2 text-xs font-medium">{item.title}</p>
-                <p className="mt-0.5 text-[11px] leading-4 text-muted">{item.text}</p>
+                <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">{item.text}</p>
               </div>
             ))}
           </div>
@@ -538,15 +550,15 @@ export default function Train() {
             <div className="text-xs">
               <p className="font-medium">
                 {today.length} reviews
-                <span className="ml-1 font-normal text-muted">today</span>
+                <span className="ml-1 font-normal text-muted-foreground">today</span>
               </p>
-              <p className="mt-1 text-muted">{due} cards due now</p>
-              <p className="mt-0.5 text-muted">{streakDays(attempts, now)} day streak</p>
+              <p className="mt-1 text-muted-foreground">{due} cards due now</p>
+              <p className="mt-0.5 text-muted-foreground">{streakDays(attempts, now)} day streak</p>
             </div>
           </div>
         </Panel>
         <Panel title="Data" subtitle="Snapshot in use">
-          <p className="text-[11px] leading-5 text-muted">
+          <p className="text-[11px] leading-5 text-muted-foreground">
             {statsState === 'ready'
               ? 'Popularity is loaded. New repertoires pull their coverage numbers from the bundled Lichess sample.'
               : statsState === 'error'
@@ -558,7 +570,7 @@ export default function Train() {
               <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-brand" />
               Lichess sample
             </span>
-            <span className="text-muted">{compact(attempts.length)} reviews</span>
+            <span className="text-muted-foreground">{compact(attempts.length)} reviews</span>
           </div>
         </Panel>
       </div>
@@ -569,7 +581,7 @@ export default function Train() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-[0.08em] text-muted">{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
       <p className="mt-0.5 text-lg font-semibold tabular">{value}</p>
     </div>
   )
