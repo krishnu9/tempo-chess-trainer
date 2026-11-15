@@ -1,0 +1,149 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel2: var(--panel2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --font-sans: 'Fira Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Fira Code', ui-monospace, monospace;
+  --radius-xl: 14px;
+}
+
+:root {
+  --bg: #0a0e13;
+  --panel: #10161e;
+  --panel2: #151d27;
+  --line: #1f2a36;
+  --ink: #e6edf3;
+  --muted: #8b98a9;
+  --brand: #3fb950;
+  --brand-soft: #12281a;
+  --accent: #d29922;
+  --danger: #f85149;
+  --info: #58a6ff;
+  --board-light: #ebecd0;
+  --board-dark: #739552;
+  --board-hl: #f6f669;
+  color-scheme: dark;
+}
+
+html.light {
+  --bg: #f6f8fa;
+  --panel: #ffffff;
+  --panel2: #eef2f5;
+  --line: #d8dee4;
+  --ink: #1f2328;
+  --muted: #5d6671;
+  --brand: #1a7f37;
+  --brand-soft: #e6f4ea;
+  --accent: #9a6700;
+  --danger: #cf222e;
+  --info: #0969da;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Fira Sans', ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  border-color: var(--line);
+}
+
+button:not(:disabled),
+[role='button'] {
+  cursor: pointer;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--brand) 30%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 99px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tabular {
+  font-family: 'Fira Code', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.board-frame {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 40px -24px rgb(0 0 0 / 0.7);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--panel2) 25%, var(--line) 50%, var(--panel2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop-in {
+  animation: pop-in 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
