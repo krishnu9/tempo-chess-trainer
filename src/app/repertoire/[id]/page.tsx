@@ -4,11 +4,14 @@ import {
   AlertTriangle,
   ArrowLeft,
   ChevronLeft,
+  Download,
   FlipVertical2,
   Pencil,
+  Plus,
   RotateCcw,
   Target,
   Trash2,
+  Upload,
   Zap,
 } from 'lucide-react'
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
@@ -32,8 +35,9 @@ import {
 import { compact, pct } from '@/lib/format'
 import { other, turn } from '@/lib/chess'
 import { identify } from '@/lib/openings'
-import { getStats, useStats } from '@/lib/stats'
-import { countMoves, countNodes, getNode, myPositions, nodeCoverage, sanPath } from '@/lib/tree'
+import { parsePgn, toPgn } from '@/lib/pgn'
+import { getStats, lookup, useStats } from '@/lib/stats'
+import { countMoves, countNodes, coverageGaps, getNode, myPositions, nodeCoverage, sanPath, type Gap } from '@/lib/tree'
 import type { TreeNode } from '@/lib/types'
 import { coverageOf, useStore } from '@/store/store'
 
@@ -145,6 +149,7 @@ export default function RepertoireDetail() {
   const router = useRouter()
   const repertoires = useStore((s) => s.repertoires)
   const addMoveTo = useStore((s) => s.addMoveTo)
+  const addLinesTo = useStore((s) => s.addLinesTo)
   const removeNodeAt = useStore((s) => s.removeNodeAt)
   const renameRepertoire = useStore((s) => s.renameRepertoire)
   const draft = useStore((s) => s.draft)
@@ -158,6 +163,11 @@ export default function RepertoireDetail() {
   const [renameOpen, setRenameOpen] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
   const [draftAdded, setDraftAdded] = useState<number | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [pgnText, setPgnText] = useState('')
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importNote, setImportNote] = useState<string | null>(null)
+  const pgnFile = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setPath([])
@@ -168,12 +178,13 @@ export default function RepertoireDetail() {
   const sans = rep ? sanPath(rep.root, path) : []
   const name = identify(sans) ?? (rep ? rep.name : '')
   const coverage = useMemo(() => (rep ? coverageOf(rep) : null), [rep, statsState])
+  const gaps = useMemo(() => (rep ? coverageGaps(rep.root, rep.side, lookup) : []), [rep, statsState])
   const stats = node ? getStats(node.fen) : null
   const myTurn = rep && node ? turn(node.fen) === rep.side : false
   const covered = useMemo(() => new Set(node?.children.map((c) => c.uci) ?? []), [node])
   const nodeCov = rep && node ? nodeCoverage(node, rep.side, (fen) => {
     const s = getStats(fen)
-    return s ? { total: s.total, moves: s.moves.map((m) => ({ uci: m.uci, games: m.games })) } : null
+    return s ? { total: s.total, moves: s.moves.map((m) => ({ uci: m.uci, san: m.san, games: m.games })) } : null
   }) : null
   const lastMove = path.length ? node?.uci : null
 
@@ -228,6 +239,40 @@ export default function RepertoireDetail() {
     setPath([])
   }
 
+  const importGames = () => {
+    const { lines, skipped } = parsePgn(pgnText)
+    if (!lines.length) {
+      setImportError(
+        skipped
+          ? `${skipped} game${skipped === 1 ? '' : 's'} could not be read. Check the PGN.`
+          : 'No games found. Paste PGN movetext or choose a game file.',
+      )
+      return
+    }
+    addLinesTo(rep.id, lines)
+    setImportNote(`+${lines.length} game${lines.length === 1 ? '' : 's'}${skipped ? `, ${skipped} skipped` : ''}`)
+    setPgnText('')
+    setImportError(null)
+    setImportOpen(false)
+    setPath([])
+  }
+
+  const exportPgn = () => {
+    const pgn = toPgn(rep.root, rep.name)
+    if (!pgn) return
+    const url = URL.createObjectURL(new Blob([pgn], { type: 'application/x-chess-pgn' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${rep.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '') || 'repertoire'}.pgn`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const addGap = (gap: Gap) => {
+    const next = addMoveTo(rep.id, gap.path, gap.san)
+    if (next) setPath(next)
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -241,13 +286,29 @@ export default function RepertoireDetail() {
             <h2 className="truncate text-lg font-semibold tracking-tight">{rep.name}</h2>
             <Badge tone={rep.side === 'white' ? 'neutral' : 'info'}>{rep.side}</Badge>
             {draftAdded !== null && <Badge tone="brand">+{draftAdded} positions drafted</Badge>}
+            {importNote && <Badge tone="brand">{importNote}</Badge>}
           </div>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             {countNodes(rep.root) - 1} positions · {countMoves(rep.root)} moves ·{' '}
             {myPositions(rep.root, rep.side).length} decision points
           </p>
         </div>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setImportError(null)
+              setImportOpen(true)
+            }}
+          >
+            <Upload size={13} />
+            Import PGN
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportPgn} disabled={!rep.root.children.length}>
+            <Download size={13} />
+            Export PGN
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -426,6 +487,55 @@ export default function RepertoireDetail() {
               Adds the top opponent moves to 85% and the most popular reply
             </p>
           </Panel>
+
+          <Panel
+            title="Coverage gaps"
+            subtitle="Popular opponent moves not in your tree"
+            bodyClassName="p-2"
+          >
+            {statsState === 'loading' ? (
+              <div className="space-y-2 p-2">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
+            ) : gaps.length ? (
+              <div className="divide-y divide-line">
+                {gaps.map((gap) => {
+                  const line = sanPath(rep.root, gap.path)
+                  return (
+                    <div
+                      key={`${gap.path.join(' ')}:${gap.uci}`}
+                      className="flex items-center gap-2 py-2 first:pt-0 last:pb-0"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-warn/10 text-warn">
+                        <AlertTriangle size={12} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-[12px] font-medium">{gap.san}</p>
+                        <p className="truncate text-[10px] text-muted-foreground">
+                          {identify(line) ?? (line.length ? line.join(' ') : rep.name)} ·{' '}
+                          {compact(gap.games)} games · {pct(gap.share)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="subtle"
+                        size="sm"
+                        onClick={() => addGap(gap)}
+                        aria-label={`Add ${gap.san}`}
+                      >
+                        <Plus size={13} />
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="px-2 py-6 text-center text-[11px] leading-5 text-muted-foreground">
+                {statsState === 'ready' ? 'No gaps. You answer every popular move.' : 'Popularity data unavailable.'}
+              </p>
+            )}
+          </Panel>
         </div>
       </div>
 
@@ -458,6 +568,61 @@ export default function RepertoireDetail() {
           <p className="text-xs">
             These are popular moves, not engine-best moves. Review and prune the tree afterwards.
           </p>
+        </div>
+      </Modal>
+
+      <Modal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        title="Import PGN"
+        width="max-w-lg"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setImportOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={importGames} disabled={!pgnText.trim()}>
+              <Upload size={14} />
+              Import
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-xs leading-5 text-muted-foreground">
+            Paste PGN movetext or pick a file. Tempo adds the mainline of each game to{' '}
+            <span className="font-medium text-ink">{rep.name}</span>. Variations are ignored.
+          </p>
+          <textarea
+            value={pgnText}
+            onChange={(e) => {
+              setPgnText(e.target.value)
+              setImportError(null)
+            }}
+            rows={7}
+            placeholder={'[Event "My game"]\n\n1. e4 e5 2. Nf3 Nc6'}
+            aria-label="PGN text"
+            className="w-full resize-y rounded-lg border border-line bg-panel px-3 py-2 font-mono text-[12px] text-ink outline-none transition-colors placeholder:text-muted-foreground/70 focus-visible:border-brand/60"
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button variant="subtle" size="sm" onClick={() => pgnFile.current?.click()}>
+              Choose PGN file
+            </Button>
+            <input
+              ref={pgnFile}
+              type="file"
+              accept=".pgn,application/x-chess-pgn,text/plain"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (!file) return
+                setPgnText(await file.text())
+                setImportError(null)
+              }}
+            />
+            {importError && <p className="text-[11px] text-danger">{importError}</p>}
+          </div>
         </div>
       </Modal>
 

@@ -4,6 +4,7 @@ import {
   addLine,
   countNodes,
   coverage,
+  coverageGaps,
   draftFromPopular,
   emptyRoot,
   getNode,
@@ -47,8 +48,16 @@ describe('repertoire tree', () => {
   it('computes weighted coverage on opponent nodes', () => {
     const { root } = addLine(emptyRoot(), ['e4', 'e5', 'Nf3'])
     const stats = (fen: string) => {
-      if (fen === START_FEN) return { total: 100, moves: [{ uci: 'e2e4', games: 100 }] }
-      if (fen === 'e4pos') return { total: 100, moves: [{ uci: 'e7e5', games: 50 }, { uci: 'c7c5', games: 50 }] }
+      if (fen === START_FEN)
+        return { total: 100, moves: [{ uci: 'e2e4', san: 'e4', games: 100 }] }
+      if (fen === 'e4pos')
+        return {
+          total: 100,
+          moves: [
+            { uci: 'e7e5', san: 'e5', games: 50 },
+            { uci: 'c7c5', san: 'c5', games: 50 },
+          ],
+        }
       return null
     }
     const withStats = (fen: string) => (fen.split(' ')[0].includes('4P3') ? stats('e4pos') : stats(fen))
@@ -58,10 +67,36 @@ describe('repertoire tree', () => {
     expect(result.pct).toBe(0.5)
   })
 
+  it('reports uncovered popular replies, heaviest first', () => {
+    const { root } = addLine(emptyRoot(), ['e4', 'e5', 'Nf3'])
+    const lookup = (fen: string) =>
+      fen.split(' ')[1] === 'b'
+        ? {
+            total: 100,
+            moves: [
+              { uci: 'e7e5', san: 'e5', games: 60 },
+              { uci: 'c7c5', san: 'c5', games: 30 },
+              { uci: 'e7e6', san: 'e6', games: 10 },
+            ],
+          }
+        : null
+
+    const gaps = coverageGaps(root, 'white', lookup)
+    expect(gaps.map((g) => g.san)).toEqual(['c5', 'e6'])
+    expect(gaps[0]).toMatchObject({ games: 30, total: 100, share: 0.3, path: ['e2e4'] })
+  })
+
   it('drafts popular moves from an empty tree', () => {
     const root = emptyRoot()
     const lookup = (fen: string) => {
-      if (fen === START_FEN) return { total: 100, moves: [{ uci: 'e2e4', games: 60 }, { uci: 'd2d4', games: 40 }] }
+      if (fen === START_FEN)
+        return {
+          total: 100,
+          moves: [
+            { uci: 'e2e4', san: 'e4', games: 60 },
+            { uci: 'd2d4', san: 'd4', games: 40 },
+          ],
+        }
       return null
     }
     const drafted = draftFromPopular(root, 'white', lookup, 0.85, 8)

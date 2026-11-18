@@ -113,7 +113,7 @@ export function myPositions(root: TreeNode, side: Side): Position[] {
 
 export type Lookup = (fen: string) => {
   total: number
-  moves: { uci: string; games: number }[]
+  moves: { uci: string; san: string; games: number }[]
 } | null
 
 export function coverage(root: TreeNode, side: Side, lookup: Lookup) {
@@ -143,6 +143,39 @@ export function nodeCoverage(node: TreeNode, side: Side, lookup: Lookup) {
     if (played) covered += played.games
   }
   return { pct: covered / stats.total, covered, total: stats.total }
+}
+
+export type Gap = {
+  path: string[]
+  uci: string
+  san: string
+  games: number
+  total: number
+  share: number
+}
+
+/** Popular opponent moves missing from the tree, heaviest first. */
+export function coverageGaps(root: TreeNode, side: Side, lookup: Lookup, limit = 8): Gap[] {
+  const gaps: Gap[] = []
+  walk(root, (node, path) => {
+    if (turn(node.fen) === side || !node.children.length) return
+    const stats = lookup(node.fen)
+    if (!stats || !stats.total) return
+    const covered = new Set(node.children.map((c) => c.uci))
+    for (const move of stats.moves) {
+      if (covered.has(move.uci)) continue
+      gaps.push({
+        path,
+        uci: move.uci,
+        san: move.san,
+        games: move.games,
+        total: stats.total,
+        share: move.games / stats.total,
+      })
+    }
+  })
+  gaps.sort((a, b) => b.games - a.games)
+  return gaps.slice(0, limit)
 }
 
 /**
