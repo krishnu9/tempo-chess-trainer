@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Chessboard } from 'react-chessboard'
 import type { Arrow } from 'react-chessboard'
-import { legalMoves } from '../lib/chess'
-import type { Side } from '../lib/types'
+import { legalMoves } from '@/lib/chess'
+import type { Side } from '@/lib/types'
 
 export type BoardMove = {
   from: string

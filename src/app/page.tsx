@@ -1,6 +1,8 @@
+'use client'
+
 import { ArrowRight, BookOpen, CalendarCheck, Flame, Target, TrendingUp } from 'lucide-react'
 import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import {
   Bar,
   BarChart,
@@ -12,12 +14,12 @@ import {
   Tooltip,
   XAxis,
 } from 'recharts'
-import { accuracy, activity, dueCount, learnedCount, streakDays, weakPositions } from '../lib/analytics'
-import { compact, pct, timeAgo } from '../lib/format'
-import { DAY } from '../lib/srs'
-import { useStats } from '../lib/stats'
-import { coverageOf, useStore } from '../store/store'
-import { Badge, Button, Card, EmptyState, Panel, Progress, Ring, cx } from '../components/ui'
+import { accuracy, activity, dueCount, learnedCount, streakDays, weakPositions } from '@/lib/analytics'
+import { compact, pct, timeAgo } from '@/lib/format'
+import { DAY } from '@/lib/srs'
+import { useStats } from '@/lib/stats'
+import { coverageOf, useStore } from '@/store/store'
+import { Badge, Button, Card, EmptyState, Panel, Progress, Ring, cx } from '@/components/kit'
 
 function Kpi({
   label,
@@ -30,22 +32,22 @@ function Kpi({
   value: string
   sub: string
   icon: React.ReactNode
-  tone?: 'brand' | 'accent' | 'info' | 'danger'
+  tone?: 'brand' | 'warn' | 'info' | 'danger'
 }) {
   const tones = {
     brand: 'bg-brand-soft text-brand',
-    accent: 'bg-accent/10 text-accent',
+    warn: 'bg-warn/10 text-warn',
     info: 'bg-info/10 text-info',
     danger: 'bg-danger/10 text-danger',
   }
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between">
-        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted">{label}</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
         <span className={cx('flex h-7 w-7 items-center justify-center rounded-lg', tones[tone])}>{icon}</span>
       </div>
       <p className="mt-3 text-[26px] font-semibold leading-none tabular">{value}</p>
-      <p className="mt-1.5 text-xs text-muted">{sub}</p>
+      <p className="mt-1.5 text-xs text-muted-foreground">{sub}</p>
     </Card>
   )
 }
@@ -56,7 +58,7 @@ function ChartTip({ active, payload, label }: any) {
   return (
     <div className="rounded-lg border border-line bg-panel px-3 py-2 text-xs shadow-xl">
       <p className="mb-1 font-medium">{label}</p>
-      <p className="text-muted">
+      <p className="text-muted-foreground">
         {data.total} reviews · {data.correct} correct · {data.wrong} wrong
       </p>
     </div>
@@ -101,7 +103,7 @@ export default function Dashboard() {
           title="Start your repertoire"
           description="Create a White or Black repertoire, or import lines from the opening library."
           action={
-            <Link to="/repertoire">
+            <Link href="/repertoire">
               <Button variant="primary">Create a repertoire</Button>
             </Link>
           }
@@ -114,7 +116,7 @@ export default function Dashboard() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs text-muted">
+          <p className="text-xs text-muted-foreground">
             {new Date(now).toLocaleDateString(undefined, {
               weekday: 'long',
               month: 'long',
@@ -123,7 +125,7 @@ export default function Dashboard() {
           </p>
           <h2 className="mt-1 text-[22px] font-semibold tracking-tight">Your training</h2>
         </div>
-        <Link to="/train">
+        <Link href="/train">
           <Button variant="primary" size="lg">
             <Target size={15} />
             Start session
@@ -156,14 +158,14 @@ export default function Dashboard() {
               : `${last7.length} reviews this week`
           }
           icon={<TrendingUp size={14} />}
-          tone={acc >= 0.8 ? 'brand' : 'accent'}
+          tone={acc >= 0.8 ? 'brand' : 'warn'}
         />
         <Kpi
           label="Streak"
           value={`${streak}d`}
           sub={todayCount ? `${todayCount} reviews today` : 'review today to keep it'}
           icon={<Flame size={14} />}
-          tone={streak > 2 ? 'accent' : 'info'}
+          tone={streak > 2 ? 'warn' : 'info'}
         />
       </div>
 
@@ -173,7 +175,7 @@ export default function Dashboard() {
           title="Review activity"
           subtitle={`${compact(weekTotal)} reviews in the last 7 days · ${compact(attempts.length)} all time`}
           action={
-            <div className="flex items-center gap-3 text-[11px] text-muted">
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-sm bg-brand" /> correct
               </span>
@@ -204,15 +206,15 @@ export default function Dashboard() {
           </div>
           <div className="mt-3 grid grid-cols-3 gap-3 border-t border-line pt-3">
             <div>
-              <p className="text-[11px] text-muted">Today</p>
+              <p className="text-[11px] text-muted-foreground">Today</p>
               <p className="text-sm font-semibold tabular">{todayCount}</p>
             </div>
             <div>
-              <p className="text-[11px] text-muted">7-day accuracy</p>
+              <p className="text-[11px] text-muted-foreground">7-day accuracy</p>
               <p className="text-sm font-semibold tabular">{last7.length ? pct(acc, 1) : '—'}</p>
             </div>
             <div>
-              <p className="text-[11px] text-muted">Avg / day</p>
+              <p className="text-[11px] text-muted-foreground">Avg / day</p>
               <p className="text-sm font-semibold tabular">{Math.round(weekTotal / 7)}</p>
             </div>
           </div>
@@ -223,13 +225,13 @@ export default function Dashboard() {
             {coverages.map(({ rep, coverage }) => (
               <Link
                 key={rep.id}
-                to={`/repertoire/${rep.id}`}
-                className="flex items-center gap-3 rounded-xl border border-line bg-panel2/40 p-3 transition-colors hover:border-muted/40"
+                href={`/repertoire/${rep.id}`}
+                className="flex items-center gap-3 rounded-xl border border-line bg-panel2/40 p-3 transition-colors hover:border-muted-foreground/40"
               >
                 <Ring value={statsState === 'ready' ? coverage.pct : 0} size={56} stroke={5} label={statsState === 'ready' ? undefined : '…'} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-medium">{rep.name}</p>
-                  <p className="mt-0.5 text-[11px] text-muted">
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
                     {statsState === 'ready' ? (
                       <>{pct(coverage.pct)} weighted coverage</>
                     ) : (
@@ -247,9 +249,9 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-medium">{due} positions due now</p>
-                  <p className="text-[10px] text-muted">across {repertoires.length} repertoires</p>
+                  <p className="text-[10px] text-muted-foreground">across {repertoires.length} repertoires</p>
                 </div>
-                <Link to="/train">
+                <Link href="/train">
                   <Button variant="primary" size="sm">
                     Review
                   </Button>
@@ -257,12 +259,12 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Link to="/repertoire">
+              <Link href="/repertoire">
                 <Button variant="outline" size="sm" className="w-full">
                   Manage
                 </Button>
               </Link>
-              <Link to="/openings">
+              <Link href="/openings">
                 <Button variant="subtle" size="sm" className="w-full">
                   Add lines
                 </Button>
@@ -277,7 +279,7 @@ export default function Dashboard() {
           title="Weak positions"
           subtitle="Most lapses and lowest ease, across both sides"
           action={
-            <Badge tone="accent">
+            <Badge tone="warn">
               <Flame size={11} /> {weak.reduce((n, w) => n + w.card.lapses, 0)} lapses
             </Badge>
           }
@@ -286,17 +288,17 @@ export default function Dashboard() {
             <div className="divide-y divide-line">
               {weak.map(({ card, rep, name }) => (
                 <div key={`${card.repId}-${card.epd}`} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-panel2 text-[11px] text-muted">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-panel2 text-[11px] text-muted-foreground">
                     {card.lapses}×
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-medium">{name ?? rep?.name}</p>
-                    <p className="mt-0.5 text-[11px] text-muted">
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
                       {rep?.side === 'white' ? 'White' : 'Black'} · ease {card.ease.toFixed(2)} ·{' '}
                       {card.due <= now ? 'due now' : `in ${Math.ceil((card.due - now) / DAY)}d`}
                     </p>
                   </div>
-                  <Link to={rep ? `/repertoire/${rep.id}` : '/repertoire'}>
+                  <Link href={rep ? `/repertoire/${rep.id}` : '/repertoire'}>
                     <Button variant="ghost" size="sm">
                       Open
                     </Button>
@@ -305,7 +307,7 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <p className="py-6 text-center text-xs text-muted">No lapses recorded yet.</p>
+            <p className="py-6 text-center text-xs text-muted-foreground">No lapses recorded yet.</p>
           )}
         </Panel>
 
@@ -313,7 +315,7 @@ export default function Dashboard() {
           title="Recent reviews"
           subtitle="Latest graded positions"
           action={
-            <Link to="/progress">
+            <Link href="/progress">
               <Button variant="ghost" size="sm">
                 All activity
               </Button>
@@ -332,7 +334,7 @@ export default function Dashboard() {
                   />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px]">{a.name}</p>
-                    <p className="mt-0.5 text-[11px] text-muted">{timeAgo(a.ts, now)}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{timeAgo(a.ts, now)}</p>
                   </div>
                   <span className={cx('text-[11px] font-medium', a.correct ? 'text-brand' : 'text-danger')}>
                     {a.correct ? 'correct' : 'missed'}
@@ -341,7 +343,7 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <p className="py-6 text-center text-xs text-muted">No reviews yet.</p>
+            <p className="py-6 text-center text-xs text-muted-foreground">No reviews yet.</p>
           )}
         </Panel>
       </div>
@@ -359,7 +361,7 @@ export default function Dashboard() {
                     <Badge tone={side === 'white' ? 'neutral' : 'info'}>{reps.length} reps</Badge>
                   </div>
                   <p className="mt-2 text-xl font-semibold tabular">{total}</p>
-                  <p className="text-[11px] text-muted">tracked positions</p>
+                  <p className="text-[11px] text-muted-foreground">tracked positions</p>
                 </div>
               )
             })}
@@ -388,17 +390,17 @@ export default function Dashboard() {
               </ResponsiveContainer>
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-sm font-semibold tabular">{last7.length ? pct(acc) : '—'}</span>
-                <span className="text-[9px] uppercase tracking-wide text-muted">7 days</span>
+                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">7 days</span>
               </div>
             </div>
             <div className="space-y-2 text-xs">
-              <p className="text-muted">
+              <p className="text-muted-foreground">
                 <span className="font-medium text-ink">{last7.filter((a) => a.correct).length}</span> correct
               </p>
-              <p className="text-muted">
+              <p className="text-muted-foreground">
                 <span className="font-medium text-ink">{last7.filter((a) => !a.correct).length}</span> missed
               </p>
-              <p className="text-muted">
+              <p className="text-muted-foreground">
                 <span className="font-medium text-ink">{learned}</span> positions learned
               </p>
             </div>

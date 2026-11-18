@@ -40,7 +40,7 @@ const cache = new Map<string, PosStat | null>()
 export function ensureStats(): Promise<void> {
   if (!loading) {
     loading = (async () => {
-      const res = await fetch(`${import.meta.env.BASE_URL}opening-stats.json.gz`)
+      const res = await fetch('/opening-stats.json.gz')
       if (!res.ok) throw new Error(`Stats file not found (${res.status})`)
       const buf = new Uint8Array(await res.arrayBuffer())
       let text: string

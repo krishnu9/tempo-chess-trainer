@@ -1,9 +1,5 @@
-import a from '../data/openings/a.tsv?raw'
-import b from '../data/openings/b.tsv?raw'
-import c from '../data/openings/c.tsv?raw'
-import d from '../data/openings/d.tsv?raw'
-import e from '../data/openings/e.tsv?raw'
-import { parseSans } from './chess'
+import rows from '@/data/openings.json'
+import { parseSans } from '@/lib/chess'
 
 export type Opening = {
   eco: string
@@ -12,19 +8,13 @@ export type Opening = {
   sans: string[]
 }
 
-function parse(raw: string): Opening[] {
-  return raw
-    .split('\n')
-    .filter((line) => line && !line.startsWith('eco\t'))
-    .map((line) => {
-      const [eco, name, pgn] = line.split('\t')
-      return { eco, name, family: name.split(':')[0], sans: parseSans(pgn ?? '') }
-    })
-    .filter((o) => o.sans.length > 0)
+function parse([eco, name, pgn]: [string, string, string]): Opening {
+  return { eco, name, family: name.split(':')[0], sans: parseSans(pgn) }
 }
 
-export const OPENINGS: Opening[] = [a, b, c, d, e]
-  .flatMap(parse)
+export const OPENINGS: Opening[] = (rows as [string, string, string][])
+  .map(parse)
+  .filter((o) => o.sans.length > 0)
   .sort((x, y) => x.eco.localeCompare(y.eco) || x.name.localeCompare(y.name))
 
 export const FAMILIES = [...new Set(OPENINGS.map((o) => o.family))].sort()
