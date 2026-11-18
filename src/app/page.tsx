@@ -279,9 +279,19 @@ export default function Dashboard() {
           title="Weak positions"
           subtitle="Most lapses and lowest ease, across both sides"
           action={
-            <Badge tone="warn">
-              <Flame size={11} /> {weak.reduce((n, w) => n + w.card.lapses, 0)} lapses
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge tone="warn">
+                <Flame size={11} /> {weak.reduce((n, w) => n + w.card.lapses, 0)} lapses
+              </Badge>
+              {weak.length > 0 && (
+                <Link href="/train?mode=weak">
+                  <Button variant="primary" size="sm">
+                    <Target size={13} />
+                    Train weak
+                  </Button>
+                </Link>
+              )}
+            </div>
           }
         >
           {weak.length ? (

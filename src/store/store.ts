@@ -173,7 +173,7 @@ export const useStore = create<Store>()(
         const before = countNodes(rep.root)
         const root = draftFromPopular(rep.root, rep.side, (fen) => {
           const s = getStats(fen)
-          return s ? { total: s.total, moves: s.moves.map((m) => ({ uci: m.uci, games: m.games })) } : null
+          return s ? { total: s.total, moves: s.moves.map((m) => ({ uci: m.uci, san: m.san, games: m.games })) } : null
         })
         set((s) => ({ repertoires: s.repertoires.map((r) => (r.id === id ? touch(r, root) : r)) }))
         return countNodes(root) - before
@@ -239,6 +239,6 @@ export const useStore = create<Store>()(
 export const coverageOf = (rep: Repertoire) =>
   coverage(rep.root, rep.side, (fen) => {
     const s = getStats(fen)
-    return s ? { total: s.total, moves: s.moves.map((m) => ({ uci: m.uci, games: m.games })) } : null
+    return s ? { total: s.total, moves: s.moves.map((m) => ({ uci: m.uci, san: m.san, games: m.games })) } : null
   })
 

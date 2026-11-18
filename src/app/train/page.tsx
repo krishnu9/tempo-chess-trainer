@@ -22,12 +22,12 @@ import { playUci, START_FEN, turn } from '@/lib/chess'
 import { compact, pct, seconds } from '@/lib/format'
 import { DAY } from '@/lib/srs'
 import { lookup, useStats } from '@/lib/stats'
-import { buildLineTasks, buildPlayoutTasks, buildReviewTasks, type Task } from '@/lib/trainer'
+import { buildLineTasks, buildPlayoutTasks, buildReviewTasks, buildWeakTasks, type Task } from '@/lib/trainer'
 import type { Repertoire, Side } from '@/lib/types'
 import { myPositions, sanPath } from '@/lib/tree'
 import { useStore } from '@/store/store'
 
-type Mode = 'review' | 'playout'
+type Mode = 'review' | 'playout' | 'weak'
 type Result = { task: Task; correct: boolean; ms: number }
 
 export default function TrainPage() {
@@ -50,7 +50,8 @@ function Train() {
 
   const initialRep = search.get('rep') ?? 'all'
   const lineParam = search.get('line')
-  const [mode, setMode] = useState<Mode>('review')
+  const weakParam = search.get('mode') === 'weak'
+  const [mode, setMode] = useState<Mode>(weakParam ? 'weak' : 'review')
   const [repId, setRepId] = useState(initialRep)
   const [phase, setPhase] = useState<'setup' | 'session' | 'summary'>(lineParam ? 'session' : 'setup')
   const [tasks, setTasks] = useState<Task[]>([])
@@ -114,6 +115,12 @@ function Train() {
     start(buildPlayoutTasks(rep, lookup), 'Popular line playout')
   }
 
+  const beginWeak = () => {
+    setLineMode(false)
+    const reps = repId === 'all' ? repertoires : repertoires.filter((r) => r.id === repId)
+    start(buildWeakTasks(reps, cards), 'Weak cards')
+  }
+
   useEffect(() => {
     if (!lineParam || autoStarted.current) return
     autoStarted.current = true
@@ -121,6 +128,15 @@ function Train() {
     const name = search.get('name') ?? 'Line drill'
     setLineMode(true)
     start(buildLineTasks(search.get('rep') ?? '', side, lineParam.split(','), name), `${name} · ${side}`)
+    router.replace('/train')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!weakParam || lineParam || autoStarted.current) return
+    autoStarted.current = true
+    const reps = repId === 'all' ? repertoires : repertoires.filter((r) => r.id === repId)
+    start(buildWeakTasks(reps, cards), 'Weak cards')
     router.replace('/train')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -453,6 +469,7 @@ function Train() {
     const positions = myPositionsSafe(r)
     return n + positions.filter((p) => !cards[`${r.id}:${p}`]).length
   }, 0)
+  const weakSelected = buildWeakTasks(statsList, cards).length
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -464,11 +481,12 @@ function Train() {
           </p>
         </div>
 
-        <Panel title="Session setup" subtitle="Review due cards or play out a popular line">
+        <Panel title="Session setup" subtitle="Review due cards, weak cards, or play out a popular line">
           <div className="space-y-4">
             <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="review">Review</TabsTrigger>
+                <TabsTrigger value="weak">Weak cards</TabsTrigger>
                 <TabsTrigger value="playout">Play out</TabsTrigger>
               </TabsList>
             </Tabs>
@@ -492,25 +510,29 @@ function Train() {
               <p className="mt-1.5 text-[11px] text-muted-foreground">
                 {mode === 'review'
                   ? `${dueSelected} due · up to ${Math.min(newPerDay, newSelected)} new cards`
-                  : 'One random line, weighted by how often each move is played.'}
+                  : mode === 'weak'
+                    ? `${weakSelected} cards with lapses or low ease`
+                    : 'One random line, weighted by how often each move is played.'}
               </p>
             </div>
             <Button
               variant="primary"
               size="lg"
               className="w-full"
-              onClick={mode === 'review' ? beginReview : beginPlayout}
+              onClick={mode === 'review' ? beginReview : mode === 'weak' ? beginWeak : beginPlayout}
               disabled={!repertoires.length || (mode === 'playout' && repId === 'all')}
             >
               <Play size={15} />
-              {mode === 'review' ? 'Start review' : 'Play a line'}
+              {mode === 'review' ? 'Start review' : mode === 'weak' ? 'Train weak cards' : 'Play a line'}
             </Button>
             {mode === 'playout' && repId === 'all' && (
               <p className="text-center text-[11px] text-warn">Pick one repertoire for commentated playout.</p>
             )}
             {noTasks && (
               <p className="rounded-lg border border-brand/30 bg-brand-soft/50 px-3 py-2 text-center text-[11px] text-brand">
-                Nothing is due. New cards are capped at {newPerDay} per session — add more lines to keep going.
+                {mode === 'weak'
+                  ? 'No weak cards yet. Cards become weak after a lapse or when ease drops.'
+                  : `Nothing is due. New cards are capped at ${newPerDay} per session — add more lines to keep going.`}
               </p>
             )}
             {!repertoires.length && (

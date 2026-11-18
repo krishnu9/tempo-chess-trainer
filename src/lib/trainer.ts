@@ -52,6 +52,24 @@ export function buildReviewTasks(
   return [...due, ...fresh.slice(0, Math.max(0, newLimit))].slice(0, cap)
 }
 
+/** Cards with lapses or low ease, due or not. Weak drill is extra practice on purpose. */
+export function buildWeakTasks(reps: Repertoire[], cards: Record<string, Card>, cap = 40): Task[] {
+  const weak: Task[] = []
+  for (const rep of reps) {
+    for (const { node, path } of myPositions(rep.root, rep.side)) {
+      const card = cards[cardKey(rep.id, epd(node.fen))]
+      if (!card || (card.lapses === 0 && card.ease >= 2.5)) continue
+      weak.push(makeTask(rep, node, path))
+    }
+  }
+  weak.sort((x, y) => {
+    const a = cards[x.key]
+    const b = cards[y.key]
+    return b.lapses - a.lapses || a.ease - b.ease || a.due - b.due
+  })
+  return weak.slice(0, cap)
+}
+
 export function buildLineTasks(
   repId: string,
   side: 'white' | 'black',

@@ -94,7 +94,7 @@ export function getStats(fen: string): PosStat | null {
 export const lookup = (fen: string) => {
   const s = getStats(fen)
   if (!s) return null
-  return { total: s.total, moves: s.moves.map((m) => ({ uci: m.uci, games: m.games })) }
+  return { total: s.total, moves: s.moves.map((m) => ({ uci: m.uci, san: m.san, games: m.games })) }
 }
 
 export function useStats() {

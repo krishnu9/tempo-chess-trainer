@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildLineTasks, buildPlayoutTasks, buildReviewTasks } from '../trainer'
-import { START_FEN, playUci } from '../chess'
-import { addLine, emptyRoot } from '../tree'
-import type { Repertoire } from '../types'
+import { buildLineTasks, buildPlayoutTasks, buildReviewTasks, buildWeakTasks } from '../trainer'
+import { START_FEN, epd, playUci } from '../chess'
+import { cardKey, newCard } from '../srs'
+import { addLine, emptyRoot, myPositions } from '../tree'
+import type { Card, Repertoire } from '../types'
 
 const makeRep = (lines: string[][]): Repertoire => {
   let root = emptyRoot()
@@ -42,5 +43,20 @@ describe('trainer sessions', () => {
       }
       expect(fen).toBe(task.fen)
     }
+  })
+
+  it('builds weak cards from lapses and low ease only', () => {
+    const rep = makeRep([['e4', 'e5', 'Nf3', 'Nc6', 'Bb5']])
+    const cards: Record<string, Card> = {}
+    myPositions(rep.root, rep.side).forEach(({ node }, i) => {
+      const card = newCard('r1', epd(node.fen), 0)
+      if (i === 0) card.lapses = 2
+      if (i === 1) card.ease = 2.2
+      cards[cardKey('r1', epd(node.fen))] = card
+    })
+
+    const tasks = buildWeakTasks([rep], cards)
+    expect(tasks).toHaveLength(2)
+    expect(tasks[0].expected[0].san).toBe('e4')
   })
 })
